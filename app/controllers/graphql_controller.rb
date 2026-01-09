@@ -10,11 +10,18 @@ class GraphqlController < ApplicationController
     variables = prepare_variables(params[:variables])
     query = params[:query]
     operation_name = params[:operationName]
+
     context = {
-      # Query context goes here, for example:
-      # current_user: current_user,
+      current_user: authenticate_request
     }
-    result = AppSchema.execute(query, variables: variables, context: context, operation_name: operation_name)
+
+    result = AppSchema.execute(
+      query,
+      variables: variables,
+      context: context,
+      operation_name: operation_name
+    )
+
     render json: result
   rescue StandardError => e
     raise e unless Rails.env.development?
@@ -43,10 +50,18 @@ class GraphqlController < ApplicationController
     end
   end
 
+  def authenticate_request
+    token = request.headers["Authorization"]&.split(" ")&.last
+    return nil unless token
+
+    payload = JwtService.decode(token)
+    User.find_by(id: payload["user_id"]) if payload
+  end
+
   def handle_error_in_development(e)
     logger.error e.message
     logger.error e.backtrace.join("\n")
 
-    render json: { errors: [{ message: e.message, backtrace: e.backtrace }], data: {} }, status: 500
+    render json: { errors: [ { message: e.message, backtrace: e.backtrace } ], data: {} }, status: 500
   end
 end
