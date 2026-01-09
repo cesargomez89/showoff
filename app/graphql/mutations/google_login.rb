@@ -9,18 +9,23 @@ module Mutations
       data = GoogleAuthService.verify(id_token)
       raise GraphQL::ExecutionError, "Invalid Google token" unless data
 
-      user = User.find_or_create_by!(
-        email: data[:email],
-        provider: "google",
-        uid: data[:uid]
-      )
+      user = User.find_by(email: data[:email])
+      if user
+        user.update!(provider: "google", uid: data[:uid])
+      else
+        user = User.create!(
+          email: data[:email],
+          provider: "google",
+          uid: data[:uid]
+        )
+      end
 
-      token = JwtService.encode(user_id: user.id)
-      refresh = RefreshToken.generate(user)
+      token = JwtService.encode({ user_id: user.id })
+      refresh_token_obj, raw_refresh_token = RefreshToken.generate(user)
 
       context[:response].set_cookie(
         :refresh_token,
-        value: refresh,
+        value: "#{refresh_token_obj.id}:#{raw_refresh_token}",
         httponly: true,
         secure: Rails.env.production?,
         same_site: :strict,

@@ -1,22 +1,22 @@
-class AuthController < ActionController::API
+class AuthController < ApplicationController
   def refresh
-    raw_token = cookies[:refresh_token]
-    return unauthorized unless raw_token
+    raw_value = cookies[:refresh_token]
+    return unauthorized unless raw_value
 
-    refresh_token = RefreshToken.active.find do |rt|
-      rt.valid_token?(raw_token)
-    end
+    token_id, raw_token = raw_value.split(":")
+    return unauthorized unless token_id && raw_token
 
-    return unauthorized unless refresh_token
+    refresh_token = RefreshToken.active.find_by(id: token_id)
+    return unauthorized unless refresh_token&.valid_token?(raw_token)
 
     user = refresh_token.user
 
     # ROTATE TOKEN
     refresh_token.destroy
-    new_refresh = RefreshToken.generate(user)
+    new_refresh_obj, new_raw_token = RefreshToken.generate(user)
 
     cookies[:refresh_token] = {
-      value: new_refresh,
+      value: "#{new_refresh_obj.id}:#{new_raw_token}",
       httponly: true,
       secure: Rails.env.production?,
       same_site: :strict,
@@ -24,7 +24,7 @@ class AuthController < ActionController::API
     }
 
     render json: {
-      access_token: JwtService.encode(user_id: user.id)
+      access_token: JwtService.encode({ user_id: user.id })
     }
   end
 

@@ -12,7 +12,8 @@ class GraphqlController < ApplicationController
     operation_name = params[:operationName]
 
     context = {
-      current_user: authenticate_request
+      current_user: authenticate_request,
+      response: response
     }
 
     result = AppSchema.execute(
@@ -23,6 +24,9 @@ class GraphqlController < ApplicationController
     )
 
     render json: result
+    if result["errors"].present?
+      Rails.logger.fatal "❌ GRAPHQL ERRORS: #{result["errors"].inspect}"
+    end
   rescue StandardError => e
     raise e unless Rails.env.development?
     handle_error_in_development(e)

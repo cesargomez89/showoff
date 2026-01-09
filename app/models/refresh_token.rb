@@ -7,12 +7,12 @@ class RefreshToken < ApplicationRecord
     raw = SecureRandom.hex(64)
     digest = BCrypt::Password.create(raw)
 
-    user.refresh_tokens.create!(
+    token = user.refresh_tokens.create!(
       token_digest: digest,
       expires_at: 30.days.from_now
     )
 
-    raw
+    [token, raw]
   end
 
   def valid_token?(raw_token)
