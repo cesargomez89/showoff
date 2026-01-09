@@ -1,0 +1,16 @@
+volumes:
+  graph_api_bundle_path:
+    name: graph_api_bundle_path
+services:
+  graph_api: &graph_api
+    build: .
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - .:/app
+      - graph_api_bundle_path:/usr/local/bundle
+    ports:
+      - "3000:3000"
+
+    env_file: .env
+    stdin_open: true
+    tty: true
