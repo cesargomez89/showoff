@@ -1,9 +1,32 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
-#
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
+require "securerandom"
+
+class Seeder
+  def self.run
+    create_users
+  end
+
+  def self.create_users
+    puts "Creating users..."
+
+    emails = [
+      "admin@example.com",
+      "user@example.com"
+    ]
+
+    emails.each do |email|
+      user = User.find_by(email: email)
+      next if user
+
+      User.create!(
+        email: email,
+        password: "password",
+        password_confirmation: "password",
+        uid: SecureRandom.uuid
+      )
+    end
+  end
+end
+
+puts "Seeding..."
+Seeder.run
+puts "Seeding complete!"
